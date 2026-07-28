@@ -78,7 +78,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 3. Environment Variable Configuration (.env)
-* Tạo file .env tại thư mục gốc và điền thông tin tương ứng:
+* Create a .env file in the root directory and fill in the corresponding info:
 ```
 # Data paths
 DATA_PATH = "~/UNIGAP/Project2/data"
