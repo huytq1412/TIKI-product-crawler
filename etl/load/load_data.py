@@ -3,9 +3,7 @@ import psycopg2
 from psycopg2 import extras
 import glob
 import os
-
 from sqlalchemy.exc import DataError, IntegrityError, OperationalError, DatabaseError
-
 from config.config import load_config
 from dotenv import load_dotenv
 

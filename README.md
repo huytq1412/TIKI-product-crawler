@@ -1,95 +1,95 @@
 # Tiki Product Crawler 
 
-Công cụ thu thập dữ liệu sản phẩm Tiki số lượng lớn, được tối ưu hóa cho tốc độ, độ ổn định.
+A high-volume data extraction tool for Tiki products, optimized for speed and stability.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Status](https://img.shields.io/badge/Status-Completed-success)
 
-## Tính năng
+## Features
 
-* Tốc độ cao: Sử dụng kỹ thuật Multithreading (`concurrent.futures`) để xử lý 30 request song song, tăng tốc độ gấp nhiều lần so với tuần tự.
-* Xử lý dữ liệu phân lô: hệ thống sử dụng kỹ thuật Stream Processing thông qua tham số chunksize của Pandas.
-* Cơ chế (Auto-Restart): 
-  * sử dụng subprocess để tự động khởi động lại tiến trình sau 10 giây nếu gặp sự cố (Crash/Mất mạng) thông qua script giám sát `run.py`.
-  * Tự thử lại tối đa 5 lần khi gặp sự cố.
-* Cơ chế (Resume): Nếu chương trình bị ngắt, lần sau chạy lại sẽ loại trừ danh sách các id đã crawl thành công và tiếp tục tại batch dừng (không crawl lại từ đầu). Tự động bỏ qua các Batch đã tải xong. 
-*  Dữ liệu sạch:
-    * Tự động loại bỏ thẻ HTML
-    * Chuẩn hóa xuống dòng (`\n`).
-* Chống chặn: Sử dụng `fake-useragent` để xoay vòng danh tính, tránh việc request quá nhiều lên server từ một nguồn sẽ dễ bị chặn
-* Load: Tải vào PostgreSQL với cơ chế Upsert (Cập nhật nếu tồn tại, Thêm mới nếu chưa) và Transaction (Rollback nếu có lỗi) để đảm bảo tính toàn vẹn dữ liệu.
+* High Speed: Uses Multithreading (`concurrent.futures`) to handle 30 concurrent requests, exponentially increasing speed compared to sequential processing.
+* Batch Processing: The system uses Stream Processing via the chunksize parameter in Pandas.
+* Auto-Restart Mechanism: 
+  * Uses subprocess to automatically restart the process after 10 seconds in case of a crash or network loss via the monitoring script `run.py`.
+  * Auto-retries up to 5 times upon failure.
+* Resume Mechanism: If interrupted, the next run will exclude successfully crawled IDs and resume at the stopped batch (no need to crawl from the beginning). Automatically skips completed batches. 
+* Clean Data:
+    * Automatically removes HTML tags.
+    * Standardizes line breaks (`\n`).
+* Anti-Blocking: Uses `fake-useragent` to rotate identities, avoiding being blocked by the server due to too many requests from a single source.
+* Load: Loads into PostgreSQL using Upsert (Update if exists, Insert if new) and Transaction (Rollback on error) mechanisms to ensure data integrity.
 
-Cấu trúc của Project2
+Project2 Structure
 
 ```
 Project2/
 ├── config/
 │   ├── __init__.py
-│   ├── config.py                   # Đọc và thiết lập kết nối tới database
-│   └── database.ini                # Thông tin kết nối tới database (không đẩy lên git)
+│   ├── config.py                   # Reads and configures database connection
+│   └── database.ini                # Database connection info (ignored by git)
 ├── data/
-│   ├── raw/                        # Chứa file 'products-0-200000.csv'
-│   │   └── products-0-200000.csv   # File input dữ liệu danh sách Id các sản phẩm của Tiki 
-│   └── processed/                  # Thư mục chứa các file output của các sản phẩm 
-│       ├── jsonfile/               # Thư mục chứa các file output của các sản phẩm crawl thành công (không đẩy lên git)
-│       └── errorfile/              # Thư mục chứa các file output là các Id của sản phẩm crawl gặp lỗi (không đẩy lên git)
+│   ├── raw/                        # Contains 'products-0-200000.csv' file
+│   │   └── products-0-200000.csv   # Input file containing Tiki product IDs 
+│   └── processed/                  # Directory containing output product files 
+│       ├── jsonfile/               # Directory for successfully crawled product output files (ignored by git)
+│       └── errorfile/              # Directory for output files containing failed product IDs (ignored by git)
 ├── etl/
 │   ├── extract/ 
 │   │   ├── __init__.py
-│   │   └── get_product.py          # Crawl dữ liệu chi tiết từng sản phẩm và làm sạch description
+│   │   └── get_product.py          # Crawls detailed data for each product and cleans description
 │   └── load
 │       ├── __init__.py
-│       └── load_data.py            # Tạo bảng và đẩy dữ liệu vào database
+│       └── load_data.py            # Creates tables and loads data into database
 ├── src/
 │   ├── __init__.py
-│   ├── add_error.py                # Xử lý ghi dữ liệu vào file
-│   ├── get_successed_product.py    # Lấy list tất cả các Id đã được crawl thành công
-│   ├── retry_error_product.py      # Crawl lại dữ liệu danh sách các id bị lỗi từ phía client
-│   ├── main.py                     # Đọc CSV input, crawl đa luồng, xử lý dữ liệu và đẩy vào các file ouput
-│   └── run.py                      # Chạy toàn bộ project xử lý có hỗ trợ auto restart
-├── .env                            # Các biến môi trường (không đẩy lên git)
-│                                   Bao gồm các biến để kết nối PostgreSQL,
-│                                       DATA_PATH(đường dẫn lưu file csv),
-│                                       JSON_FILE_PATH(đường dẫn kết xuất các file json),
-│                                       ERROR_FILE_PATH(đường dẫn kết xuất các file chứa Id sản phẩm lỗi)
-│                                       DATABASE_CONN_FILE(đường dẫn lưu thông tin kết nối database)
-├── .gitignore                      # File loại trừ khi đẩy lên git
-├── requirements.txt                # Các thư viện cần cài
-└── README.md                       # Tài liệu hướng dẫn sử dụng
+│   ├── add_error.py                # Handles writing data to files
+│   ├── get_successed_product.py    # Retrieves the list of all successfully crawled IDs
+│   ├── retry_error_product.py      # Re-crawls data for failed IDs from the client side
+│   ├── main.py                     # Reads input CSV, multi-thread crawls, processes data, and pushes to output files
+│   └── run.py                      # Runs the entire project with auto-restart support
+├── .env                            # Environment variables (ignored by git)
+│                                   Includes variables for PostgreSQL connection,
+│                                       DATA_PATH (path to save csv file),
+│                                       JSON_FILE_PATH (path to export json files),
+│                                       ERROR_FILE_PATH (path to export files containing failed product IDs)
+│                                       DATABASE_CONN_FILE (path to save database connection info)
+├── .gitignore                      # Files excluded when pushing to git
+├── requirements.txt                # Required libraries
+└── README.md                       # Documentation
 ```
 
-## Cài đặt & Cấu hình
-1. Yêu cầu hệ thống
-Python 3.10 trở lên.
+## Setup & Configuration
+1. System Requirements
+Python 3.10 or higher.
 
-2. Cài đặt thư viện
-Khuyên dùng môi trường ảo (venv):
+2. Install Libraries
+Virtual environment (venv) recommended:
 
 ```
-# Tạo môi trường ảo
+# Create virtual environment
 python -m venv .venv
 
-# Kích hoạt (Linux/Mac)
+# Activate (Linux/Mac)
 source .venv/bin/activate
 
-# Kích hoạt (Windows)
+# Activate (Windows)
 .venv\Scripts\activate
 
-# Cài đặt thư viện
+# Install libraries
 pip install -r requirements.txt
 ```
-3. Cấu hình biến môi trường (.env)
-Tạo file .env tại thư mục gốc và điền thông tin tương ứng:
+3. Environment Variable Configuration (.env)
+* Tạo file .env tại thư mục gốc và điền thông tin tương ứng:
 ```
-# Đường dẫn dữ liệu 
+# Data paths
 DATA_PATH = "~/UNIGAP/Project2/data"
 JSON_FILE_PATH = "~/UNIGAP/Project2/jsonfile"
 ERROR_FILE_PATH = "~/UNIGAP/Project2/errorfile"
 DATABASE_CONN_FILE = "~/UNIGAP/Project2/config/database.ini"
 ```
 
-4. Cấu hình kết nối tới database. Tạo file database.ini và điền thông tin tương ứng
+4. Database Connection Configuration. Create a database.ini file and fill in the corresponding info
 ```
-# Đường dẫn dữ liệu 
+# Data paths
 [postgresql]
 host=localhost
 port=5432
@@ -98,15 +98,15 @@ user=youruser
 password=yourpassword
 ```
 
-## Hướng dẫn sử dụng
-Chạy script giám sát `run.py` (Khuyên dùng). Chương trình sẽ tự động Restart nếu gặp sự cố.
+## Usage Guide
+Run the monitoring script `run.py` (Recommended). The program will automatically restart if a crash occurs.
 
 ```
 python src/run.py
 ```
 
-## Định dạng file output (JSON)
-Mỗi file JSON chứa khoảng 1.000 sản phẩm với cấu trúc:
+## Output File Format (JSON)
+Each JSON file contains about 1,000 products with the structure:
 
 ```
 [
